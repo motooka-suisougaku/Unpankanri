@@ -1,0 +1,2067 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🚛 楽器運搬チェック</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <style>
+    :root {
+      --primary: #1a472a;
+      --primary-light: #2d6a40;
+      --primary-lighter: #4a9d5f;
+      --accent: #ef6c00;
+      --accent-light: #ffb74d;
+      --success: #2e7d32;
+      --danger: #c62828;
+      --neutral-50: #f5f5f5;
+      --neutral-100: #eeeeee;
+      --neutral-200: #e0e0e0;
+      --neutral-300: #bdbdbd;
+      --neutral-400: #9e9e9e;
+      --neutral-600: #424242;
+      --neutral-700: #212121;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+      --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'IBM Plex Sans JP', sans-serif;
+      background: linear-gradient(135deg, #0f2417 0%, #1a3a2e 100%);
+      color: var(--neutral-700);
+      line-height: 1.6;
+    }
+
+    /* ======= SCREENS ======= */
+    .screen {
+      display: none;
+      height: 100%;
+      width: 100%;
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    .screen.active {
+      display: flex;
+      z-index: 10;
+    }
+
+    /* ======= LOGIN SCREEN ======= */
+    #loginScreen {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: linear-gradient(135deg, #0f2417 0%, #1a3a2e 100%);
+    }
+
+    .login-card {
+      background: white;
+      border-radius: 12px;
+      padding: 3rem;
+      max-width: 450px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .login-logo {
+      text-align: center;
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .login-title {
+      text-align: center;
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--primary);
+      letter-spacing: 0.05em;
+    }
+
+    .login-subtitle {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--neutral-600);
+      margin-bottom: 2.5rem;
+    }
+
+    .login-form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .login-label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 0.6rem;
+      color: var(--neutral-700);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .login-input {
+      width: 100%;
+      padding: 1rem;
+      border: 2px solid var(--neutral-200);
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans JP', sans-serif;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      letter-spacing: 0.15em;
+      font-weight: 600;
+    }
+
+    .login-input:focus {
+      outline: none;
+      border-color: var(--primary-lighter);
+      box-shadow: 0 0 0 4px rgba(74, 157, 95, 0.1);
+    }
+
+    .login-input::placeholder {
+      color: var(--neutral-300);
+      letter-spacing: 0.1em;
+    }
+
+    .login-error {
+      color: var(--danger);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: rgba(198, 40, 40, 0.1);
+      border-radius: 8px;
+      border-left: 4px solid var(--danger);
+      display: none;
+    }
+
+    .login-error.show {
+      display: block;
+      animation: shake 0.3s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-lighter) 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans JP', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      box-shadow: 0 4px 12px rgba(26, 71, 42, 0.2);
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(26, 71, 42, 0.3);
+    }
+
+    .login-btn:active {
+      transform: scale(0.98);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .login-hint {
+      text-align: center;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--neutral-200);
+      font-size: 0.85rem;
+      color: var(--neutral-600);
+    }
+
+    .login-hint-label {
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ======= APP SCREEN ======= */
+    #appScreen {
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .container {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ======= HEADER ======= */
+    header {
+      background: rgba(26, 71, 42, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 2px solid var(--primary-light);
+      padding: 1.5rem 2rem;
+      box-shadow: var(--shadow-md);
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: white;
+      text-decoration: none;
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .logo-main {
+      font-size: 1.4rem;
+      letter-spacing: 0.05em;
+    }
+
+    .logo-sub {
+      font-size: 0.6rem;
+      color: var(--accent-light);
+      letter-spacing: 0.1em;
+      font-weight: 500;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .online-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .online-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4caf50;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .logout-btn {
+      padding: 0.7rem 1.4rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: white;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .logout-btn:hover {
+      background: rgba(198, 40, 40, 0.2);
+      border-color: var(--danger);
+      color: #ff9999;
+    }
+
+    /* ======= TAB NAV ======= */
+    .tab-nav {
+      background: rgba(26, 71, 42, 0.7);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 0 2rem;
+      display: flex;
+      gap: 0;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      padding: 0.8rem 1.5rem;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: rgba(255,255,255,0.6);
+      font-family: 'IBM Plex Sans JP', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .tab-btn:hover {
+      color: white;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .tab-btn.active {
+      color: var(--accent-light);
+      border-bottom-color: var(--accent-light);
+    }
+
+    /* ======= TAB PANELS ======= */
+    .tab-panel {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .tab-panel.active {
+      display: flex;
+    }
+
+    /* ======= MAIN CONTENT ======= */
+    main {
+      flex: 1;
+      padding: 2rem;
+      display: flex;
+      gap: 2rem;
+      overflow-y: auto;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .sidebar {
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* ======= CARDS ======= */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--neutral-100);
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary-lighter);
+    }
+
+    .card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--primary);
+      margin-bottom: 1rem;
+    }
+
+    /* ======= PROGRESS ======= */
+    .progress-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .progress-stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .progress-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--neutral-600);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .progress-value {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--neutral-200);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary-light) 0%, var(--primary-lighter) 100%);
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
+    /* ======= SECTION GRID ======= */
+    .section-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.8rem;
+    }
+
+    .section-item {
+      background: var(--neutral-50);
+      border-radius: 8px;
+      padding: 0.8rem;
+      border: 1px solid var(--neutral-200);
+      transition: all 0.2s ease;
+    }
+
+    .section-item:hover {
+      border-color: var(--primary-lighter);
+      background: linear-gradient(135deg, rgba(45, 106, 64, 0.05), transparent);
+    }
+
+    .section-name {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--primary);
+      letter-spacing: 0.06em;
+      margin-bottom: 0.3rem;
+    }
+
+    .section-count {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--neutral-700);
+    }
+
+    /* ======= BUTTONS ======= */
+    .btn {
+      padding: 0.7rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans JP', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      min-height: 40px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-lighter) 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: var(--neutral-100);
+      color: var(--neutral-700);
+      border: 1.5px solid var(--neutral-200);
+    }
+
+    .btn-secondary:hover {
+      background: var(--neutral-200);
+    }
+
+    .btn-danger {
+      background: rgba(198, 40, 40, 0.1);
+      color: var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: rgba(198, 40, 40, 0.15);
+    }
+
+    .btn-small {
+      padding: 0.5rem 0.8rem;
+      font-size: 0.75rem;
+      min-height: 32px;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ======= FORMS ======= */
+    .form-group {
+      display: flex;
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .input-text {
+      flex: 1;
+      padding: 0.7rem 0.8rem;
+      border: 1.5px solid var(--neutral-200);
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans JP', sans-serif;
+      font-size: 0.9rem;
+      transition: border-color 0.2s ease;
+    }
+
+    .input-text:focus {
+      outline: none;
+      border-color: var(--primary-lighter);
+      box-shadow: 0 0 0 3px rgba(74, 157, 95, 0.1);
+    }
+
+    .template-select {
+      width: 100%;
+      padding: 0.7rem 0.8rem;
+      border: 1.5px solid var(--neutral-200);
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans JP', sans-serif;
+      font-size: 0.9rem;
+      cursor: pointer;
+      background: white;
+    }
+
+    .template-select:focus {
+      outline: none;
+      border-color: var(--primary-lighter);
+      box-shadow: 0 0 0 3px rgba(74, 157, 95, 0.1);
+    }
+
+    /* ======= CATEGORY SECTION ======= */
+    .category-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.6rem 1rem;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      border-radius: 8px 8px 0 0;
+      color: white;
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+    }
+
+    .category-header .category-emoji {
+      font-size: 1.1rem;
+    }
+
+    .category-header .category-count {
+      margin-left: auto;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    .category-items {
+      border: 1.5px solid var(--neutral-200);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      overflow: hidden;
+    }
+
+    /* ======= CHECKLIST ======= */
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 0.9rem 1rem;
+      background: white;
+      border-bottom: 1px solid var(--neutral-100);
+      transition: all 0.2s ease;
+    }
+
+    .checklist-item:last-child {
+      border-bottom: none;
+    }
+
+    .checklist-item:hover {
+      background: rgba(74, 157, 95, 0.04);
+    }
+
+    .checklist-item.done {
+      background: linear-gradient(135deg, rgba(46, 125, 50, 0.05), transparent);
+    }
+
+    .checkbox {
+      width: 24px;
+      height: 24px;
+      min-width: 24px;
+      border: 2px solid var(--neutral-300);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      margin-top: 0.2rem;
+      background: white;
+    }
+
+    .checklist-item.done .checkbox {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
+      font-weight: 700;
+    }
+
+    .checklist-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .checklist-name {
+      font-weight: 600;
+      color: var(--neutral-700);
+      word-break: break-word;
+      font-size: 0.95rem;
+      margin-bottom: 0.15rem;
+    }
+
+    .checklist-item.done .checklist-name {
+      color: var(--neutral-400);
+      text-decoration: line-through;
+      text-decoration-color: var(--success);
+    }
+
+    .checklist-meta {
+      font-size: 0.75rem;
+      color: var(--neutral-400);
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* ======= COUNT INPUT ======= */
+    .count-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.3rem;
+    }
+
+    .count-input-wrapper label {
+      font-size: 0.75rem;
+      color: var(--neutral-600);
+      white-space: nowrap;
+    }
+
+    .count-input {
+      width: 70px;
+      padding: 0.25rem 0.5rem;
+      border: 1.5px solid var(--neutral-200);
+      border-radius: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-align: center;
+      transition: border-color 0.2s ease;
+    }
+
+    .count-input:focus {
+      outline: none;
+      border-color: var(--primary-lighter);
+      box-shadow: 0 0 0 3px rgba(74, 157, 95, 0.1);
+    }
+
+    .item-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    .delete-btn {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--neutral-300);
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+
+    .delete-btn:hover {
+      color: var(--danger);
+      background: rgba(198, 40, 40, 0.1);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--neutral-400);
+    }
+
+    .empty-state-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.8rem;
+      opacity: 0.6;
+    }
+
+    /* ======= ADD FORM PER CATEGORY ======= */
+    .add-in-category {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.6rem 1rem;
+      background: var(--neutral-50);
+      border-top: 1px solid var(--neutral-100);
+    }
+
+    .add-in-category .input-text {
+      font-size: 0.85rem;
+      padding: 0.5rem 0.7rem;
+    }
+
+    .add-in-category .btn {
+      font-size: 0.75rem;
+      padding: 0.5rem 0.8rem;
+      min-height: 34px;
+    }
+
+    /* ======= MODAL ======= */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--neutral-700);
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 0.8rem;
+      justify-content: flex-end;
+      margin-top: 1.5rem;
+    }
+
+    /* ======= ONLINE USERS ======= */
+    .online-users-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--primary);
+      letter-spacing: 0.06em;
+      margin-bottom: 0.8rem;
+    }
+
+    .user-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.6rem 0.8rem;
+      background: white;
+      border-radius: 6px;
+      border: 1px solid var(--neutral-200);
+      font-size: 0.85rem;
+    }
+
+    .user-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      display: inline-block;
+    }
+
+    /* ======= TOAST ======= */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--primary);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: var(--shadow-lg);
+      font-weight: 600;
+      z-index: 9999;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ======= PRINT SCREEN (楽器運搬表) ======= */
+    #printPanel {
+      flex-direction: column;
+    }
+
+    .print-panel-inner {
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .print-toolbar {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      align-items: center;
+    }
+
+    /* 印刷用テーブル */
+    .transport-table-wrap {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--neutral-100);
+      overflow-x: auto;
+    }
+
+    .transport-table-title {
+      text-align: center;
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--primary);
+      letter-spacing: 0.08em;
+    }
+
+    .transport-date-line {
+      text-align: right;
+      font-size: 0.85rem;
+      color: var(--neutral-600);
+      margin-bottom: 1rem;
+    }
+
+    .transport-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .transport-table th {
+      background: var(--primary);
+      color: white;
+      padding: 0.6rem 0.8rem;
+      text-align: center;
+      font-weight: 600;
+      border: 1px solid var(--primary-light);
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .transport-table td {
+      padding: 0.5rem 0.8rem;
+      border: 1px solid var(--neutral-200);
+      vertical-align: middle;
+    }
+
+    .transport-table .row-num {
+      text-align: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--neutral-600);
+      width: 36px;
+    }
+
+    .transport-table .cell-category {
+      font-weight: 600;
+      color: var(--primary);
+      white-space: nowrap;
+      width: 80px;
+    }
+
+    .transport-table .cell-name {
+      font-weight: 500;
+    }
+
+    .transport-table .cell-count {
+      text-align: center;
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      width: 50px;
+    }
+
+    .transport-table .cell-check {
+      width: 60px;
+      text-align: center;
+    }
+
+    .transport-table .cell-check-box {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--neutral-400);
+      display: inline-block;
+      border-radius: 4px;
+      vertical-align: middle;
+    }
+
+    .transport-table .cell-check-box.checked {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
+      text-align: center;
+      line-height: 22px;
+      font-size: 0.8rem;
+    }
+
+    .transport-table .cell-note {
+      min-width: 120px;
+      color: var(--neutral-600);
+    }
+
+    .transport-table tr.category-row-bg-mokkan td { background: #e8f5e9; }
+    .transport-table tr.category-row-bg-kinkan td { background: #fff3e0; }
+    .transport-table tr.category-row-bg-string td { background: #e3f2fd; }
+    .transport-table tr.category-row-bg-percussion td { background: #fce4ec; }
+    .transport-table tr.category-row-bg-other td { background: #f3e5f5; }
+
+    .transport-table .category-separator td {
+      background: var(--neutral-100);
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 0.85rem;
+      padding: 0.4rem 0.8rem;
+      letter-spacing: 0.05em;
+    }
+
+    .transport-footer {
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      color: var(--neutral-400);
+      text-align: right;
+    }
+
+    /* ======= RESPONSIVE ======= */
+    @media (max-width: 1024px) {
+      main {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .sidebar {
+        width: 100%;
+        flex-direction: row;
+        gap: 1rem;
+      }
+
+      .sidebar > .card {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .section-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      header {
+        padding: 1rem;
+      }
+
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+
+      .header-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      main {
+        padding: 1rem;
+      }
+
+      .sidebar {
+        flex-direction: column;
+      }
+
+      .sidebar > .card {
+        flex: none;
+      }
+
+      .form-group {
+        flex-direction: column;
+      }
+
+      .login-card {
+        margin: 0 1rem;
+      }
+
+      .tab-btn {
+        padding: 0.7rem 1rem;
+        font-size: 0.75rem;
+      }
+    }
+
+    /* ======= PRINT STYLES ======= */
+    @media print {
+      body {
+        background: white !important;
+      }
+
+      header, .tab-nav, .sidebar, .form-group,
+      .delete-btn, .print-toolbar, #checklistPanel,
+      .add-in-category, .btn, .toast {
+        display: none !important;
+      }
+
+      #appScreen, .container, #printPanel, .tab-panel {
+        display: block !important;
+        position: static !important;
+        overflow: visible !important;
+        height: auto !important;
+      }
+
+      .print-panel-inner {
+        padding: 0;
+        max-width: 100%;
+      }
+
+      .transport-table-wrap {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+      }
+
+      .transport-table {
+        font-size: 0.75rem;
+      }
+
+      .transport-table th, .transport-table td {
+        padding: 0.3rem 0.5rem;
+      }
+
+      .transport-table tr {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="screen active">
+    <div class="login-card">
+      <div class="login-logo">🚛</div>
+      <div class="login-title">楽器運搬チェック</div>
+      <div class="login-subtitle">チーム共有版</div>
+
+      <div id="loginError" class="login-error"></div>
+
+      <div class="login-form-group">
+        <label class="login-label">パスワード</label>
+        <input
+          type="password"
+          class="login-input"
+          id="passwordInput"
+          placeholder="パスワードを入力"
+          onkeypress="if(event.key==='Enter') login();"
+        >
+      </div>
+
+      <button class="login-btn" id="loginBtn" onclick="login()">ログイン</button>
+
+      <div class="login-hint">
+        <div class="login-hint-label">🔑 パスワード</div>
+        <div style="font-family: 'Space Mono', monospace; font-weight: 600; letter-spacing: 0.1em; margin-top: 0.5rem;">
+          ONGAKUDO
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP SCREEN -->
+  <div id="appScreen" class="screen">
+    <div class="container">
+      <!-- HEADER -->
+      <header>
+        <div class="header-content">
+          <a href="#" class="logo">
+            <span>🚛</span>
+            <div class="logo-text">
+              <div class="logo-main">楽器運搬</div>
+              <div class="logo-sub">CHECKLIST</div>
+            </div>
+          </a>
+          <div class="header-right">
+            <div class="online-badge">
+              <span class="online-dot"></span>
+              <span id="userCount">0人</span>
+            </div>
+            <button class="logout-btn" onclick="logout()">ログアウト</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- TAB NAV -->
+      <nav class="tab-nav">
+        <button class="tab-btn active" id="tabBtnChecklist" onclick="switchTab('checklist')">✅ チェックリスト</button>
+        <button class="tab-btn" id="tabBtnPrint" onclick="switchTab('print')">🖨️ 楽器運搬表</button>
+      </nav>
+
+      <!-- TAB: CHECKLIST -->
+      <div class="tab-panel active" id="checklistPanel">
+        <main>
+          <!-- SIDEBAR -->
+          <aside class="sidebar">
+            <!-- PROGRESS -->
+            <div class="card">
+              <div class="card-title">📊 進捗状況</div>
+              <div class="progress-section">
+                <div>
+                  <div class="progress-stat">
+                    <span class="progress-label">完了状況</span>
+                    <span class="progress-value" id="progressPercent">0%</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                  </div>
+                </div>
+                <div class="progress-stat">
+                  <span class="progress-label">リスト</span>
+                  <span class="progress-value" id="progressCount">0 / 0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTIONS -->
+            <div class="card">
+              <div class="card-title">🎼 カテゴリ別</div>
+              <div class="section-grid" id="sectionGrid"></div>
+            </div>
+
+            <!-- ONLINE USERS -->
+            <div class="card">
+              <div class="online-users-title">👥 オンラインメンバー</div>
+              <div class="user-list" id="userList">
+                <div style="font-size: 0.85rem; color: var(--neutral-400);">読み込み中...</div>
+              </div>
+            </div>
+
+            <!-- TEMPLATES -->
+            <div class="card">
+              <div class="card-title">📂 テンプレート</div>
+              <select class="template-select" id="templateSelect">
+                <option value="">— テンプレートを選択 —</option>
+              </select>
+              <div style="display: flex; gap: 0.6rem; margin-top: 0.8rem;">
+                <button class="btn btn-primary btn-small" style="flex: 1;" onclick="loadTemplate()">読込</button>
+                <button class="btn btn-secondary btn-small" style="flex: 1;" onclick="openSaveModal()">保存</button>
+                <button class="btn btn-danger btn-small" style="flex: 1;" onclick="deleteTemplate()">削除</button>
+              </div>
+              <button class="btn btn-secondary" style="width: 100%; margin-top: 0.8rem;" onclick="loadSampleItems()">
+                🎺 定番楽器を追加
+              </button>
+            </div>
+
+            <!-- BULK ACTIONS -->
+            <div class="card" id="bulkActionsCard">
+              <div class="card-title">⚙️ 一括操作</div>
+              <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                <button class="btn btn-secondary" style="width:100%;" onclick="uncheckAll()">全チェック解除</button>
+                <button class="btn btn-danger" style="width:100%;" onclick="deleteAll()">全削除</button>
+              </div>
+            </div>
+          </aside>
+
+          <!-- CONTENT -->
+          <section class="content">
+            <!-- CHECKLIST BY CATEGORY -->
+            <div id="checklistContainer"></div>
+          </section>
+        </main>
+      </div>
+
+      <!-- TAB: PRINT VIEW -->
+      <div class="tab-panel" id="printPanel">
+        <div class="print-panel-inner">
+          <div class="print-toolbar">
+            <button class="btn btn-primary" onclick="window.print()">🖨️ 印刷する</button>
+            <span style="color: white; font-size: 0.85rem; opacity: 0.8;">チェックリストの内容が自動的に表に反映されます</span>
+          </div>
+          <div class="transport-table-wrap" id="transportTableWrap">
+            <!-- JS で生成 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SAVE TEMPLATE -->
+  <div id="saveModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">💾 テンプレートを保存</div>
+      <input type="text" class="input-text" id="templateNameInput" placeholder="例：コンクール用..." onkeypress="if(event.key==='Enter') saveTemplate();">
+      <div class="modal-buttons">
+        <button class="btn btn-secondary" onclick="closeSaveModal()">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveTemplate()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRM -->
+  <div id="confirmModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title" id="confirmTitle">確認</div>
+      <div id="confirmMessage" style="margin-bottom: 1.5rem;"></div>
+      <div class="modal-buttons">
+        <button class="btn btn-secondary" onclick="closeConfirmModal()">キャンセル</button>
+        <button class="btn btn-danger" id="confirmButton" onclick="executeConfirmAction()">実行</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ======================== FIREBASE CONFIG ========================
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyC1T0wDbnZpmkYGu8HeWNRvjAZ9QuGvg9I",
+      authDomain: "sui-cone.firebaseapp.com",
+      projectId: "sui-cone",
+      storageBucket: "sui-cone.firebasestorage.app",
+      messagingSenderId: "48223905436",
+      appId: "1:48223905436:web:24478fe3386efe9c97ef59"
+    };
+
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.firestore();
+
+    // ======================== CATEGORY DEFINITIONS ========================
+    // PDFの楽器運搬表と同じカテゴリ構成
+    const CATEGORIES = [
+      {
+        id: 'mokkan',
+        name: '木管楽器',
+        emoji: '🎷',
+        bgClass: 'category-row-bg-mokkan',
+        keywords: ['木管', 'フルート', 'ピッコロ', 'オーボエ', 'クラリネット', 'バスクラ', 'サックス', 'ソプラノサックス', 'アルトサックス', 'テナーサックス', 'バリトンサックス']
+      },
+      {
+        id: 'kinkan',
+        name: '金管楽器',
+        emoji: '🎺',
+        bgClass: 'category-row-bg-kinkan',
+        keywords: ['金管', 'トランペット', 'ホルン', 'トロンボーン', 'チューバ', 'ユーフォニアム', 'ユーフォ']
+      },
+      {
+        id: 'string',
+        name: '弦楽器',
+        emoji: '🎻',
+        bgClass: 'category-row-bg-string',
+        keywords: ['弦楽器', 'コントラバス', 'バイオリン', 'ビオラ', 'チェロ', 'ハープ', 'コンバス']
+      },
+      {
+        id: 'percussion',
+        name: '打楽器',
+        emoji: '🥁',
+        bgClass: 'category-row-bg-percussion',
+        keywords: ['打楽器', 'ティンパニ', 'バスドラム', 'シロフォン', 'ビブラフォン', 'マリンバ', 'グロッケン', 'チャイム', 'ウィンドチャイム', 'トライアングル', 'シンバル', 'ウッドブロック', 'ウィップ', 'トムトム', 'ドラム', 'ハイハット', 'スネア', 'コンガ', 'ティンバレス', '和太鼓', 'ボンゴ', 'ドラ', '基礎練台', '小物', '毛布', '譜面台']
+      },
+      {
+        id: 'other',
+        name: '備品・その他',
+        emoji: '📦',
+        bgClass: 'category-row-bg-other',
+        keywords: []
+      }
+    ];
+
+    // ======================== SAMPLE DATA ========================
+    const SAMPLE_ITEMS = [
+      { name: 'フルート', category: 'mokkan' },
+      { name: 'ピッコロ', category: 'mokkan' },
+      { name: 'オーボエ', category: 'mokkan' },
+      { name: 'クラリネット', category: 'mokkan' },
+      { name: 'バスクラリネット', category: 'mokkan' },
+      { name: 'ソプラノサックス', category: 'mokkan' },
+      { name: 'アルトサックス', category: 'mokkan' },
+      { name: 'テナーサックス', category: 'mokkan' },
+      { name: 'バリトンサックス', category: 'mokkan' },
+      { name: 'トランペット', category: 'kinkan' },
+      { name: 'ホルン', category: 'kinkan' },
+      { name: 'トロンボーン', category: 'kinkan' },
+      { name: 'チューバ', category: 'kinkan' },
+      { name: 'ユーフォニアム', category: 'kinkan' },
+      { name: 'コントラバス', category: 'string' },
+      { name: 'ティンパニ', category: 'percussion' },
+      { name: 'ティンパニ椅子', category: 'percussion' },
+      { name: 'バスドラム', category: 'percussion' },
+      { name: 'バスドラム台', category: 'percussion' },
+      { name: 'シロフォン', category: 'percussion' },
+      { name: 'ビブラフォン', category: 'percussion' },
+      { name: 'マリンバ', category: 'percussion' },
+      { name: 'グロッケン', category: 'percussion' },
+      { name: 'チャイム', category: 'percussion' },
+      { name: 'ウィンドチャイム', category: 'percussion' },
+      { name: 'トライアングル', category: 'percussion' },
+      { name: 'シンバルケース', category: 'percussion' },
+      { name: 'サスペンデットシンバル', category: 'percussion' },
+      { name: 'ウッドブロック', category: 'percussion' },
+      { name: 'ウィップ', category: 'percussion' },
+      { name: 'トムトム', category: 'percussion' },
+      { name: 'ドラム本体', category: 'percussion' },
+      { name: 'ハイハット', category: 'percussion' },
+      { name: 'ドラム用スネアドラム', category: 'percussion' },
+      { name: 'ドラム用ロータム', category: 'percussion' },
+      { name: 'スネアドラム', category: 'percussion' },
+      { name: 'ピッコロスネア', category: 'percussion' },
+      { name: 'スネア椅子', category: 'percussion' },
+      { name: 'ドラム椅子', category: 'percussion' },
+      { name: 'コンガ', category: 'percussion' },
+      { name: 'ティンバレス', category: 'percussion' },
+      { name: '和太鼓', category: 'percussion' },
+      { name: 'ボンゴ', category: 'percussion' },
+      { name: 'ドラ', category: 'percussion' },
+      { name: '基礎練台', category: 'percussion' },
+      { name: '小物バック', category: 'percussion' },
+      { name: '小物台', category: 'percussion' },
+      { name: '毛布（骨組み）', category: 'percussion' },
+      { name: '毛布（単体）', category: 'percussion' },
+      { name: '譜面台', category: 'percussion' },
+      { name: '青かご', category: 'other' },
+      { name: 'ハモディレ', category: 'other' },
+      { name: 'ハモディレ台', category: 'other' },
+      { name: 'スピーカー', category: 'other' },
+      { name: 'スピーカーコードかご', category: 'other' },
+      { name: 'ドラム式電源コード', category: 'other' },
+      { name: '指揮譜面台', category: 'other' },
+      { name: '指揮台', category: 'other' },
+      { name: 'ピアノ椅子', category: 'other' },
+      { name: 'バスクラリネットスタンド', category: 'other' },
+      { name: 'ピッコロスタンド', category: 'other' },
+      { name: 'コントラバス椅子', category: 'other' },
+      { name: 'トロンボーンスタンド', category: 'other' },
+      { name: 'アルト・ソプラノサックススタンド', category: 'other' }
+    ];
+
+    const CORRECT_PASSWORD = 'ONGAKUDO';
+
+    // ======================== STATE ========================
+    let isLoggedIn = false;
+    let sessionId = null;
+    let items = [];
+    let templates = {};
+    let onlineUsers = {};
+    let unsubscribe = {
+      items: null,
+      users: null,
+      templates: null
+    };
+    let confirmAction = null;
+    let currentTab = 'checklist';
+    let heartbeatInterval = null;
+
+    // ======================== CATEGORY DETECTION ========================
+    function getCategoryForItem(name) {
+      const lower = name.toLowerCase();
+      for (let cat of CATEGORIES) {
+        if (cat.id === 'other') continue;
+        for (let kw of cat.keywords) {
+          if (lower.includes(kw.toLowerCase())) return cat.id;
+        }
+      }
+      return 'other';
+    }
+
+    // ======================== TAB SWITCHING ========================
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tabBtn' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+      document.getElementById(tab + 'Panel').classList.add('active');
+      if (tab === 'print') {
+        renderTransportTable();
+      }
+    }
+
+    // ======================== LOGIN ========================
+    function login() {
+      const password = document.getElementById('passwordInput').value;
+
+      if (password === CORRECT_PASSWORD) {
+        document.getElementById('loginError').classList.remove('show');
+        isLoggedIn = true;
+        sessionId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
+        document.getElementById('loginScreen').classList.remove('active');
+        document.getElementById('appScreen').classList.add('active');
+
+        initApp();
+      } else {
+        const errorEl = document.getElementById('loginError');
+        errorEl.textContent = '❌ パスワードが違います';
+        errorEl.classList.add('show');
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
+      }
+    }
+
+    function logout() {
+      if (confirm('ログアウトしますか？')) {
+        isLoggedIn = false;
+        cleanupSession();
+        document.getElementById('appScreen').classList.remove('active');
+        document.getElementById('loginScreen').classList.add('active');
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
+      }
+    }
+
+    // ======================== APP INIT ========================
+    function initApp() {
+      setupItemsListener();
+      setupUsersListener();
+      setupTemplatesListener();
+    }
+
+    function cleanupSession() {
+      // Firestoreリスナー解除
+      if (unsubscribe.items) unsubscribe.items();
+      if (unsubscribe.users) unsubscribe.users();
+      if (unsubscribe.templates) unsubscribe.templates();
+
+      // ハートビート停止
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+
+      // オンラインステータス削除
+      if (sessionId) {
+        try {
+          db.collection('transport_app').doc('sessions').collection('active').doc(sessionId).delete();
+        } catch(e) {
+          // ignore
+        }
+      }
+    }
+
+    // ======================== ITEMS ========================
+    function setupItemsListener() {
+      if (unsubscribe.items) unsubscribe.items();
+
+      unsubscribe.items = db.collection('transport_app').doc('data').collection('items')
+        .orderBy('createdAt', 'asc')
+        .onSnapshot(snap => {
+          items = [];
+          snap.forEach(doc => {
+            items.push({ id: doc.id, ...doc.data() });
+          });
+          renderChecklist();
+          updateProgress();
+          renderSectionGrid();
+          if (currentTab === 'print') {
+            renderTransportTable();
+          }
+        }, err => {
+          console.error('Items error:', err);
+          showToast('⚠️ Firestore接続エラー');
+        });
+    }
+
+    function addItemToCategory(categoryId) {
+      const inputEl = document.getElementById('addInput_' + categoryId);
+      if (!inputEl) return;
+      const name = inputEl.value.trim();
+      if (!name) return;
+
+      db.collection('transport_app').doc('data').collection('items').add({
+        name: name,
+        category: categoryId,
+        done: false,
+        count: '',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy: 'ユーザー'
+      }).then(() => {
+        inputEl.value = '';
+        showToast('✅ 追加しました');
+      }).catch(err => showToast('❌ エラー: ' + err.message));
+    }
+
+    function toggleItem(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      db.collection('transport_app').doc('data').collection('items').doc(id).update({
+        done: !item.done
+      }).catch(err => showToast('❌ エラー: ' + err.message));
+    }
+
+    function deleteItem(id) {
+      db.collection('transport_app').doc('data').collection('items').doc(id).delete()
+        .catch(err => showToast('❌ エラー: ' + err.message));
+    }
+
+    // 個数の更新（デバウンス付き）
+    const countDebounceTimers = {};
+    function updateCount(id, value) {
+      if (countDebounceTimers[id]) clearTimeout(countDebounceTimers[id]);
+      countDebounceTimers[id] = setTimeout(() => {
+        db.collection('transport_app').doc('data').collection('items').doc(id).update({
+          count: value
+        }).catch(err => console.error('Count update error:', err));
+      }, 600);
+    }
+
+    function uncheckAll() {
+      const checked = items.filter(i => i.done);
+      if (checked.length === 0) {
+        showToast('❌ チェック済みがありません');
+        return;
+      }
+
+      openConfirmModal('全チェック解除', checked.length + '件を解除しますか？', () => {
+        const batch = db.batch();
+        checked.forEach(item => {
+          batch.update(
+            db.collection('transport_app').doc('data').collection('items').doc(item.id),
+            { done: false }
+          );
+        });
+        batch.commit();
+      });
+    }
+
+    function deleteAll() {
+      if (items.length === 0) {
+        showToast('❌ リストが空です');
+        return;
+      }
+
+      openConfirmModal('全削除', items.length + '件を削除しますか？', () => {
+        const batch = db.batch();
+        items.forEach(item => {
+          batch.delete(
+            db.collection('transport_app').doc('data').collection('items').doc(item.id)
+          );
+        });
+        batch.commit();
+      });
+    }
+
+    function loadSampleItems() {
+      if (!confirm(SAMPLE_ITEMS.length + '件を追加しますか？')) return;
+
+      const batch = db.batch();
+      let ts = Date.now();
+      SAMPLE_ITEMS.forEach((s, idx) => {
+        const ref = db.collection('transport_app').doc('data').collection('items').doc();
+        batch.set(ref, {
+          name: s.name,
+          category: s.category,
+          done: false,
+          count: '',
+          createdAt: firebase.firestore.Timestamp.fromMillis(ts + idx),
+          createdBy: 'サンプル'
+        });
+      });
+      batch.commit().then(() => showToast('🎺 ' + SAMPLE_ITEMS.length + '件追加しました'));
+    }
+
+    // ======================== TEMPLATES ========================
+    function setupTemplatesListener() {
+      if (unsubscribe.templates) unsubscribe.templates();
+
+      unsubscribe.templates = db.collection('transport_app').doc('data').collection('templates')
+        .orderBy('createdAt', 'desc')
+        .onSnapshot(snap => {
+          templates = {};
+          snap.forEach(doc => {
+            templates[doc.data().name] = { items: doc.data().items, id: doc.id };
+          });
+          renderTemplateSelect();
+        });
+    }
+
+    function renderTemplateSelect() {
+      const sel = document.getElementById('templateSelect');
+      const names = Object.keys(templates).sort();
+      sel.innerHTML = '<option value="">— テンプレートを選択 —</option>' +
+        names.map(n => '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>').join('');
+    }
+
+    function openSaveModal() {
+      document.getElementById('templateNameInput').value = '';
+      document.getElementById('saveModal').classList.add('active');
+      document.getElementById('templateNameInput').focus();
+    }
+
+    function closeSaveModal() {
+      document.getElementById('saveModal').classList.remove('active');
+    }
+
+    function saveTemplate() {
+      const name = document.getElementById('templateNameInput').value.trim();
+      if (!name) {
+        showToast('❌ テンプレート名を入力してください');
+        return;
+      }
+
+      db.collection('transport_app').doc('data').collection('templates').add({
+        name: name,
+        items: items.map(i => ({ name: i.name, category: i.category || getCategoryForItem(i.name), createdBy: i.createdBy })),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        closeSaveModal();
+        showToast('💾 「' + name + '」を保存しました');
+      }).catch(err => showToast('❌ エラー: ' + err.message));
+    }
+
+    function loadTemplate() {
+      const name = document.getElementById('templateSelect').value;
+      if (!name) {
+        showToast('❌ テンプレートを選択してください');
+        return;
+      }
+
+      if (!confirm('「' + name + '」を読み込みますか？')) return;
+
+      const template = templates[name] || {};
+      const itemList = template.items || [];
+      const batch = db.batch();
+      let ts = Date.now();
+
+      itemList.forEach((itemData, idx) => {
+        const ref = db.collection('transport_app').doc('data').collection('items').doc();
+        batch.set(ref, {
+          name: itemData.name,
+          category: itemData.category || getCategoryForItem(itemData.name),
+          done: false,
+          count: '',
+          createdAt: firebase.firestore.Timestamp.fromMillis(ts + idx),
+          createdBy: itemData.createdBy || 'テンプレート'
+        });
+      });
+
+      batch.commit().then(() => showToast('📥 「' + name + '」を読み込みました'));
+    }
+
+    function deleteTemplate() {
+      const name = document.getElementById('templateSelect').value;
+      if (!name) {
+        showToast('❌ テンプレートを選択してください');
+        return;
+      }
+
+      if (!confirm('「' + name + '」を削除しますか？')) return;
+
+      const template = templates[name];
+      if (template && template.id) {
+        db.collection('transport_app').doc('data').collection('templates').doc(template.id).delete();
+      }
+    }
+
+    // ======================== USERS (オンライン管理) ========================
+    function setupUsersListener() {
+      if (unsubscribe.users) unsubscribe.users();
+
+      const userRef = db.collection('transport_app').doc('sessions').collection('active').doc(sessionId);
+
+      // 初回登録
+      userRef.set({
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      // ハートビートで定期更新（30秒ごと）
+      heartbeatInterval = setInterval(() => {
+        if (isLoggedIn) {
+          userRef.set({
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+          }).catch(() => {});
+        }
+      }, 30000);
+
+      // ページ離脱時にセッション削除
+      // beforeunload: 同期的に削除試行（fetch APIでビーコン送信）
+      window.addEventListener('beforeunload', () => {
+        // Firestore REST APIで同期的に削除
+        const projectId = FIREBASE_CONFIG.projectId;
+        const path = 'transport_app/sessions/active/' + sessionId;
+        const url = 'https://firestore.googleapis.com/v1/projects/' + projectId + '/databases/(default)/documents/' + path + '?key=' + FIREBASE_CONFIG.apiKey;
+        // navigator.sendBeacon でDELETEは送れないので fetch keepalive を使用
+        try {
+          fetch(url, { method: 'DELETE', keepalive: true });
+        } catch(e) {
+          // ignore
+        }
+      });
+
+      // visibilitychange でも対応（タブ切替・最小化などには反応しないが、閉じる前に発火することがある）
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+          // ページが非表示になったときにも削除を試みる
+          const projectId = FIREBASE_CONFIG.projectId;
+          const path = 'transport_app/sessions/active/' + sessionId;
+          const url = 'https://firestore.googleapis.com/v1/projects/' + projectId + '/databases/(default)/documents/' + path + '?key=' + FIREBASE_CONFIG.apiKey;
+          try {
+            fetch(url, { method: 'DELETE', keepalive: true });
+          } catch(e) {
+            // ignore
+          }
+        } else if (document.visibilityState === 'visible' && isLoggedIn) {
+          // 戻ってきたときに再登録
+          userRef.set({
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+          }).catch(() => {});
+        }
+      });
+
+      // リスナー設定
+      unsubscribe.users = db.collection('transport_app').doc('sessions').collection('active')
+        .onSnapshot(snap => {
+          // 5分以上前のlastSeenは除外（古いゴーストセッションを無視）
+          const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+          onlineUsers = {};
+          snap.forEach(doc => {
+            const data = doc.data();
+            const lastSeen = data.lastSeen ? data.lastSeen.toMillis() : 0;
+            if (lastSeen > fiveMinutesAgo) {
+              onlineUsers[doc.id] = data;
+            }
+          });
+          renderOnlineUsers();
+        });
+    }
+
+    function renderOnlineUsers() {
+      const count = Object.keys(onlineUsers).length;
+      document.getElementById('userCount').textContent = count + '人';
+
+      const list = document.getElementById('userList');
+      if (count === 0) {
+        list.innerHTML = '<div style="font-size: 0.85rem; color: var(--neutral-400);">メンバーなし</div>';
+        return;
+      }
+
+      list.innerHTML = '<div class="user-badge"><span class="user-dot"></span><span>' + count + '人がオンライン</span></div>';
+    }
+
+    // ======================== RENDER CHECKLIST ========================
+    function renderChecklist() {
+      const container = document.getElementById('checklistContainer');
+
+      if (items.length === 0) {
+        container.innerHTML = '<div class="card"><div class="empty-state"><div class="empty-state-icon">📦</div><div>楽器がまだ追加されていません<br><span style="font-size:0.85rem;color:var(--neutral-400);">カテゴリごとに楽器を追加できます</span></div></div></div>';
+        return;
+      }
+
+      // カテゴリごとにグループ化
+      const grouped = {};
+      CATEGORIES.forEach(cat => { grouped[cat.id] = []; });
+
+      items.forEach(item => {
+        const catId = item.category || getCategoryForItem(item.name);
+        if (grouped[catId] !== undefined) {
+          grouped[catId].push(item);
+        } else {
+          grouped['other'].push(item);
+        }
+      });
+
+      let html = '';
+
+      CATEGORIES.forEach(cat => {
+        const catItems = grouped[cat.id];
+        // カテゴリに何もなければ追加フォームだけ表示
+        const doneCount = catItems.filter(i => i.done).length;
+
+        html += '<div class="category-section">';
+        html += '<div class="category-header">';
+        html += '<span class="category-emoji">' + cat.emoji + '</span>';
+        html += '<span>' + escapeHtml(cat.name) + '</span>';
+        if (catItems.length > 0) {
+          html += '<span class="category-count">' + doneCount + ' / ' + catItems.length + '</span>';
+        }
+        html += '</div>';
+        html += '<div class="category-items">';
+
+        if (catItems.length === 0) {
+          html += '<div class="checklist-item" style="color:var(--neutral-400);font-size:0.85rem;padding:0.7rem 1rem;">まだ登録なし</div>';
+        } else {
+          catItems.forEach(item => {
+            html += '<div class="checklist-item ' + (item.done ? 'done' : '') + '">';
+            html += '<button class="checkbox" onclick="toggleItem(\'' + item.id + '\')">' + (item.done ? '✓' : '') + '</button>';
+            html += '<div class="checklist-content">';
+            html += '<div class="checklist-name">' + escapeHtml(item.name) + '</div>';
+            html += '<div class="count-input-wrapper">';
+            html += '<label>個数：</label>';
+            html += '<input type="number" class="count-input" min="0" value="' + escapeHtml(item.count || '') + '" placeholder="0" oninput="updateCount(\'' + item.id + '\', this.value)">';
+            html += '<span style="font-size:0.75rem;color:var(--neutral-400);">個</span>';
+            html += '</div>';
+            html += '</div>';
+            html += '<div class="item-actions">';
+            html += '<button class="delete-btn" onclick="deleteItem(\'' + item.id + '\')">×</button>';
+            html += '</div>';
+            html += '</div>';
+          });
+        }
+
+        // カテゴリ内追加フォーム
+        html += '<div class="add-in-category">';
+        html += '<input type="text" class="input-text" id="addInput_' + cat.id + '" placeholder="' + escapeHtml(cat.name) + 'を追加..." onkeypress="if(event.key===\'Enter\') addItemToCategory(\'' + cat.id + '\')">';
+        html += '<button class="btn btn-primary" onclick="addItemToCategory(\'' + cat.id + '\')">追加</button>';
+        html += '</div>';
+
+        html += '</div>'; // .category-items
+        html += '</div>'; // .category-section
+      });
+
+      container.innerHTML = html;
+    }
+
+    function updateProgress() {
+      const total = items.length;
+      const done = items.filter(i => i.done).length;
+      const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressPercent').textContent = pct + '%';
+      document.getElementById('progressCount').textContent = done + ' / ' + total;
+    }
+
+    function renderSectionGrid() {
+      const grid = document.getElementById('sectionGrid');
+      const sectionData = {};
+      CATEGORIES.forEach(cat => { sectionData[cat.id] = { total: 0, done: 0, name: cat.name, emoji: cat.emoji }; });
+
+      items.forEach(item => {
+        const catId = item.category || getCategoryForItem(item.name);
+        if (sectionData[catId]) {
+          sectionData[catId].total++;
+          if (item.done) sectionData[catId].done++;
+        } else {
+          sectionData['other'].total++;
+          if (item.done) sectionData['other'].done++;
+        }
+      });
+
+      grid.innerHTML = Object.entries(sectionData)
+        .filter(([, data]) => data.total > 0)
+        .map(([id, data]) => {
+          const pct = data.total === 0 ? 0 : Math.round((data.done / data.total) * 100);
+          return '<div class="section-item">' +
+            '<div class="section-name">' + data.emoji + ' ' + escapeHtml(data.name) + '</div>' +
+            '<div class="section-count">' + data.done + '/' + data.total + '</div>' +
+            '<div style="font-size:0.75rem;color:var(--neutral-400);">' + pct + '%</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    // ======================== RENDER TRANSPORT TABLE ========================
+    function renderTransportTable() {
+      const wrap = document.getElementById('transportTableWrap');
+
+      const now = new Date();
+      const dateStr = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日';
+
+      // カテゴリごとにグループ化
+      const grouped = {};
+      CATEGORIES.forEach(cat => { grouped[cat.id] = []; });
+
+      items.forEach(item => {
+        const catId = item.category || getCategoryForItem(item.name);
+        if (grouped[catId] !== undefined) {
+          grouped[catId].push(item);
+        } else {
+          grouped['other'].push(item);
+        }
+      });
+
+      let rowNum = 1;
+      let tableRows = '';
+
+      CATEGORIES.forEach(cat => {
+        const catItems = grouped[cat.id];
+        if (catItems.length === 0) return;
+
+        // カテゴリ区切り行
+        tableRows += '<tr class="category-separator">';
+        tableRows += '<td colspan="6">' + cat.emoji + ' ' + escapeHtml(cat.name) + '</td>';
+        tableRows += '</tr>';
+
+        catItems.forEach(item => {
+          tableRows += '<tr class="' + cat.bgClass + '">';
+          tableRows += '<td class="row-num">' + rowNum + '</td>';
+          tableRows += '<td class="cell-name">' + escapeHtml(item.name) + '</td>';
+          tableRows += '<td class="cell-count">' + escapeHtml(item.count || '') + '</td>';
+          // 運搬楽器チェックボックス（手動チェック用）
+          tableRows += '<td class="cell-check"><div class="cell-check-box ' + (item.done ? 'checked' : '') + '">' + (item.done ? '✓' : '') + '</div></td>';
+          // 運搬済みチェックボックス（印刷用空欄）
+          tableRows += '<td class="cell-check"><div class="cell-check-box"></div></td>';
+          tableRows += '<td class="cell-note"></td>';
+          tableRows += '</tr>';
+          rowNum++;
+        });
+      });
+
+      if (rowNum === 1) {
+        // 何もない
+        wrap.innerHTML = '<div class="empty-state" style="padding:3rem;text-align:center;color:var(--neutral-400);">チェックリストに楽器が追加されていません</div>';
+        return;
+      }
+
+      wrap.innerHTML = '<div class="transport-table-title">🚛 楽器運搬表</div>' +
+        '<div class="transport-date-line">作成日：' + dateStr + '　作成：Y.H</div>' +
+        '<table class="transport-table">' +
+        '<thead><tr>' +
+        '<th style="width:40px;">No.</th>' +
+        '<th>楽器名</th>' +
+        '<th style="width:60px;">数</th>' +
+        '<th style="width:70px;">運搬楽器</th>' +
+        '<th style="width:70px;">運搬済み</th>' +
+        '<th>メモ</th>' +
+        '</tr></thead>' +
+        '<tbody>' + tableRows + '</tbody>' +
+        '</table>' +
+        '<div class="transport-footer">※本資料の内容は、関係者の円滑な運営を目的として作成したものです。許可なく複製・転載・配布することを固くお断りいたします。</div>';
+    }
+
+    // ======================== MODALS ========================
+    function openConfirmModal(title, message, action) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmMessage').textContent = message;
+      confirmAction = action;
+      document.getElementById('confirmModal').classList.add('active');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirmModal').classList.remove('active');
+      confirmAction = null;
+    }
+
+    function executeConfirmAction() {
+      if (confirmAction) confirmAction();
+      closeConfirmModal();
+    }
+
+    // ======================== UTILS ========================
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = String(text);
+      return div.innerHTML;
+    }
+
+    function showToast(msg) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  </script>
+</body>
+</html>
